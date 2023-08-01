@@ -7,6 +7,12 @@ The command queue and the commands are designed to be modular for easy profiling
 
 The project is structured around the aspect of event-based programming where the event handlers initiate commands.
 
+## Installation
+
+```
+python -m pip install simple-async-command-manager
+```
+
 ## Usage
 Example usage is documented in the provided examples.
 
