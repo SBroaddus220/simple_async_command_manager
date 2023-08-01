@@ -65,6 +65,9 @@ class CommandQueue:
         command = await self._queue.get()
         if command in self.pending_commands:
             self.pending_commands.remove(command)
+        else:
+            logger.error("Command was not pending.")
+            raise ValueError("Command was not pending.")
         self.running_commands.append(command)
         return command
     
@@ -79,6 +82,9 @@ class CommandQueue:
         self._queue.task_done()
         if command in self.running_commands:
             self.running_commands.remove(command)
+        else:
+            logger.error("Command was not running.")
+            raise ValueError("Command was not running.")
         self.completed_commands.append(command)
 
 
@@ -95,8 +101,9 @@ class CommandQueue:
             try:
                 command = await asyncio.wait_for(self.get(), timeout=1)
             except asyncio.TimeoutError:
+                await asyncio.sleep(0.5)
                 continue
-
+            
             task = asyncio.create_task(command.run())
             running_tasks.append(task)
             task.add_done_callback(lambda t: self.task_done(command))

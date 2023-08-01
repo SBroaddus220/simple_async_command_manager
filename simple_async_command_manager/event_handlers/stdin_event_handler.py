@@ -123,7 +123,7 @@ class StdinHandler:
             command (str): Command to listen for.
             handler (Callable): Handler to call when the command is received. See class docstring for supported handler signatures. 
         """
-        logger.debug(f"Adding command handler for command `{command}` with callback `{handler.__name__}`")
+        logger.debug(f"Adding command handler for command `{command}` with callback `{handler.__name__ if hasattr(handler, '__name__') else 'NO NAME FOUND'}`")
         self.command_handlers[command] = handler
     
 

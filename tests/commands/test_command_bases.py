@@ -9,7 +9,6 @@ Test cases for the command bases.
 import asyncio
 
 import unittest
-from unittest import mock
 from unittest.mock import AsyncMock, Mock, patch
 
 from simple_async_command_manager.commands.command_bases import CommandQueue, Task
@@ -23,15 +22,10 @@ class TestCommandQueue(unittest.TestCase):
         self.stop_event = asyncio.Event()
         self.command_queue = CommandQueue(self.stop_event)
         
-        # # Event loop
-        # self.loop = asyncio.new_event_loop()
-        # asyncio.set_event_loop(self.loop)
-        
         
     def tearDown(self):
         # Clear the stop event after each test to ensure it doesn't interfere with the next one
         self.stop_event.clear()
-        # self.loop.close()
         
         
     # ****************
@@ -83,52 +77,7 @@ class TestCommandQueue(unittest.TestCase):
     def test_wait_until_empty(self, mock_join):
         asyncio.run(self.command_queue.wait_until_empty())
         mock_join.assert_called_once()
-
-
-    # ****************
-    # Run commands tests
-    # def test_run_commands(self):
-    #     # Set up the command
-    #     command = Mock(spec=Task)
-    #     command.run = asyncio.sleep(0)  # Yield to the event loop
-
-    #     # Create an asyncio.Queue and put the command in it
-    #     queue_with_command = asyncio.Queue()
-    #     self.loop.run_until_complete(queue_with_command.put(command))
-
-    #     # Set up the queue
-    #     with patch.object(self.command_queue, 'get', side_effect=queue_with_command.get), \
-    #          patch.object(self.command_queue, 'task_done') as mock_task_done:
-
-    #         # Set stop event to stop the loop in run_commands after a delay
-    #         self.loop.run_until_complete(asyncio.wait([self.command_queue.run_commands(),
-    #                                                    asyncio.sleep(2).then(lambda _: self.stop_event.set())]))
-
-    #         # Verify that task_done was called
-    #         mock_task_done.assert_called_once_with(command)
-
-
-    # def test_run_commands_timeout(self):
-    #     # Set up the command
-    #     command = Mock(spec=Task)
-    #     command.run = AsyncMock()
-
-    #     # Set stop event to stop the loop in run_commands
-    #     self.stop_event.set()
-
-    #     # Set up the queue
-    #     with patch.object(self.command_queue, 'get', side_effect=asyncio.TimeoutError) as mock_get, \
-    #          patch.object(self.command_queue, 'task_done') as mock_task_done:
-
-    #         # Run the commands
-    #         self.loop.run_until_complete(self.command_queue.run_commands())
-
-    #         # Verify that get was called
-    #         mock_get.assert_called_once()
-
-    #         # Verify that task_done was not called
-    #         mock_task_done.assert_not_called()
-    
+        
 
     # ****************
     # Get pending commands tests
