@@ -6,7 +6,6 @@ This module holds the base classes for commands.
 """
 
 import sys
-import inspect
 import logging
 import asyncio
 import subprocess

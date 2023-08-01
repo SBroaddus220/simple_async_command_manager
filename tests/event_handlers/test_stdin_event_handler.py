@@ -7,13 +7,13 @@ Test cases for the stdin event handler.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 
 from simple_async_command_manager.commands.command_bases import CommandQueue
-from simple_async_command_manager.event_handlers.stdin_event_handler import StdinHandler, stop_stdin_handler
+from simple_async_command_manager.event_handlers.stdin_event_handler import StdinHandler
 
 # ****************
-class TestStdinEventHandler(unittest.TestCase):
+class TestStdinEventHandler(unittest.IsolatedAsyncioTestCase):
 
     # ****************
     def setUp(self):

@@ -5,7 +5,6 @@
 This module holds commands that are shared between handlers and are not computer or user specific.
 """
 
-import asyncio
 import logging
 
 from simple_async_command_manager.commands.command_bases import (
