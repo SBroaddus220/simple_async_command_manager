@@ -54,6 +54,7 @@ class TestCommandQueue(unittest.TestCase):
         command = Mock(spec=Task)
         self.command_queue.pending_commands.append(command)
         mock_get.return_value = command
+        command.run.return_value = AsyncMock()
         asyncio.run(self.command_queue.get())
         mock_get.assert_called_once()
         self.assertNotIn(command, self.command_queue.pending_commands)
@@ -61,7 +62,7 @@ class TestCommandQueue(unittest.TestCase):
 
     # ****************
     # Task done tests
-    @patch('asyncio.Queue.task_done', new_callable=AsyncMock)
+    @patch('asyncio.Queue.task_done', new_callable=Mock)
     def test_task_done(self, mock_task_done):
         command = Mock(spec=Task)
         self.command_queue.running_commands.append(command)

@@ -78,8 +78,8 @@ class CommandQueue:
             command (Task): Completed command.
         """
         logger.debug("Marking command as done.")
-        self._queue.task_done()
         if command in self.running_commands:
+            self._queue.task_done()
             self.running_commands.remove(command)
         else:
             logger.error("Command was not running.")
