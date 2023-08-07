@@ -71,14 +71,15 @@ class StdinHandler:
     """
     Event handler that handles stdin input.
 
-    Supported Handler Signatures:
-    1. `func(handler_instance: StdinHandler, line: str) -> None`
-        - This function takes the handler instance and the line read from stdin as input.
+    **Supported Handler Signatures:**\n
+    - `func(handler_instance: StdinHandler, line: str) -> None` 
+       - This function takes the handler instance and the line read from stdin as input.
                     
-    2. `func(handler_instance: StdinHandler, line: str, command_queue: CommandQueue) -> None`
+    - `func(handler_instance: StdinHandler, line: str, command_queue: CommandQueue) -> None`
         - This function takes the handler instance, the line read from stdin, and the command queue as input.
                 
-    Other signatures are not currently supported.
+    Other signatures are not currently supported.\n
+    ----------------------
     """
     
     def __init__(self, command_queue: CommandQueue, stop_event: Optional[asyncio.Event] = None, external_command_handlers: Optional[Dict[str, Callable]] = None) -> None:
