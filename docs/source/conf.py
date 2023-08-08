@@ -6,7 +6,6 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-import sphinx_rtd_theme
 import os, sys
 sys.path.insert(0, os.path.abspath('../..'))
 sys.path.insert(0, os.path.abspath('../../simple_async_command_manager'))
@@ -29,6 +28,11 @@ extensions = [
     # 'sphinx.ext.autosummary',  # Automatic documentation
     'sphinx.ext.napoleon',  # Support for Google-style docstrings
 ]
+
+templates_path = ['_templates']
+exclude_patterns = ['_build', '_templates']
+
+# Autosummary configuration
 # autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
 # Source configuration
@@ -37,13 +41,8 @@ source_suffix = '.rst'
 # Autodoc configuration
 add_module_names = False
 
-
 # Napoleon configuration
 napoleon_google_docstring = True
-
-templates_path = ['_templates']
-exclude_patterns = ['_build', '_templates']
-
 
 
 # -- Options for HTML output -------------------------------------------------
