@@ -113,7 +113,8 @@ async def main():
 
     """Initialize and start the bot."""
     my_telegram_bot = TelegramBotHandler(
-        token = BOT_KEY
+        token = BOT_KEY,
+        external_command_queue = command_queue,
     )
     
     # Add custom command handlers
