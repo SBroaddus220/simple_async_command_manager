@@ -11,9 +11,6 @@ packages = [{include = "simple_async_command_manager"}]
 python = "^3.11"
 python-telegram-bot = { version = "^20.4", optional = true }
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.0"
-
 [tool.poetry.extras]
 telegram = ["python-telegram-bot"]
 

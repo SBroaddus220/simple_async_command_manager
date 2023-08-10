@@ -10,7 +10,9 @@ import os
 import inspect
 import logging
 import asyncio
-from typing import Dict, Optional, Callable, Tuple, Any
+import functools
+from functools import partial
+from typing import Dict, Optional, Callable, Tuple, Any, List
 
 try:
     import telegram
@@ -28,7 +30,32 @@ logger = logging.getLogger(__name__)
 
 
 # **********
+# Decorator to restrict access to commands
+def restricted(func: Callable) -> Callable:
+    """Decorator to mark function as restricted."""
+    @functools.wraps(func)
+    async def wrapped_async(*args, **kwargs):
+        return await func(*args, **kwargs)
+
+    def wrapped_sync(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    if asyncio.iscoroutinefunction(func):
+        wrapped_async._is_restricted = True
+        return wrapped_async
+    else:
+        wrapped_sync._is_restricted = True
+        return wrapped_sync
+
+
+def is_restricted_function(func: Callable) -> bool:
+    """Check if a function has been wrapped by the `restricted` decorator."""
+    return getattr(func, '_is_restricted', False)
+
+
+# **********
 # Command Handlers specialized for telegram bot
+@restricted
 async def stop_bot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Stops the bot when the command /stopbot is issued."""
     await update.message.reply_text("Shutting down bot...")
@@ -36,6 +63,7 @@ async def stop_bot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.application.updater.is_idle = False  # Stops the updater from restarting
 
 
+@restricted
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message after the /echo command."""
     user_input = ' '.join(context.args)  # Join the user's input arguments after the command
@@ -44,18 +72,21 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # *****
 # Command Queue Handlers
+@restricted
 async def start_queue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, external_command_queue: CommandQueue) -> None:
     """Handler for the /startqueue command."""
     message = shared_commands.start_command_queue(external_command_queue)
     await update.message.reply_text(message)
     
-
+    
+@restricted
 async def stop_queue_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, external_command_queue: CommandQueue) -> None:
     """Handler for the /stopqueue command."""
     message = shared_commands.stop_command_queue(external_command_queue)
     await update.message.reply_text(message)
 
 
+@restricted
 async def get_queue_processes(update: Update, context: ContextTypes.DEFAULT_TYPE, external_command_queue: CommandQueue) -> None:
     """Gets a list of running and pending processes when the command /queueprocesses is issued."""
     # await update.message.reply_text("Getting running and pending processes in the queue...")
@@ -76,7 +107,8 @@ async def get_queue_processes(update: Update, context: ContextTypes.DEFAULT_TYPE
     except Exception as e:
         await update.message.reply_text(f"An error occurred: {str(e)}")
         
-        
+
+@restricted
 async def send_subprocess_output(update: Update, context: ContextTypes.DEFAULT_TYPE, external_command_queue: CommandQueue) -> None:
     """Sends output from a subprocess when the command /subprocessoutput {process_id} is issued."""
     # Gets args from command
@@ -141,18 +173,25 @@ class TelegramBotHandler:
     def job_queue(self):
         return self.application.job_queue
     
-    def __init__(self, token: str, external_command_queue: CommandQueue, external_command_handlers: Optional[Dict[str, Callable]] = None) -> None:
+    def __init__(self, token: str, external_command_queue: CommandQueue, user_whitelist: Optional[List[int]] = None, user_blacklist: Optional[List[int]] = None) -> None:
         """Initializes the Telegram Bot.
 
         Args:
             token (str): Bot token.
             external_command_queue (CommandQueue): Command queue that can handle commands from the bot.
+            user_whitelist (Optional[List[int]], optional): List of user ids that are allowed to use restricted actions with the bot. Defaults to None.
+            user_blacklist (Optional[List[int]], optional): List of user ids that are not allowed to use restricted actions the bot. Defaults to None.
         """
         self.application = Application.builder().token(token).build()
         self.external_command_queue = external_command_queue
+        self.user_whitelist = user_whitelist
+        self.user_blacklist = user_blacklist
         
-        #: Supported command signatures. Defined when wrapping the command handler.
-        self.supported_command_signatures: Dict[Tuple[str, ...], Tuple[Any, ...]] = {}
+        #: Supported command signatures. Signatures depend upon variable updates and context which are known only when updates are received.
+        self.supported_command_signatures: Dict[Tuple[str, ...], Tuple[Any, ...]] = {
+            ("update", "context"): lambda update, context: (update, context),
+            ("update", "context", "external_command_queue"): lambda update, context: (update, context, self.external_command_queue),
+        }
         
         # Add the default command handlers
         self.add_command_handler("stopbot", stop_bot)
@@ -163,34 +202,33 @@ class TelegramBotHandler:
         self.add_command_handler("stopqueue", stop_queue_handler)
         self.add_command_handler("queueprocesses", get_queue_processes)
         self.add_command_handler("subprocessoutput", send_subprocess_output)
-        
-         # Add external command handlers
-        if external_command_handlers is not None:
-            for command, handler in external_command_handlers.items():
-                self.add_command_handler(command, handler)
 
 
     def add_command_handler(self, command: str, handler: Callable) -> None:
-        """Adds a command handler to the bot. Commands are verified against supported command signatures.
-
-        Args:
-            command (str): Command to handle.
-            handler (Callable): Handler function.
-        """
-        # This creates a new handler function that has arguments based on its signature
-        def wrapped_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Callable:
-            # Define the supported command signatures
-            self.supported_command_signatures = {
-                ("update", "context"): (update, context),
-                ("update", "context", "external_command_queue"): (update, context, self.external_command_queue),
-            }
-            
+        """Adds a command handler to the bot."""
+        
+        async def wrapped_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Callable:
+                
+            if is_restricted_function(handler):
+                # Check if the user is permitted
+                user_id = update.effective_user.id
+                if self.user_blacklist and user_id in self.user_blacklist:
+                    logger.warning(f"Access denied for {user_id} due to blacklist.")
+                    await update.message.reply_text("You are not authorized to use this command.")  # Send feedback to the user
+                    return
+                if self.user_whitelist and user_id not in self.user_whitelist:
+                    logger.warning(f"Access denied for {user_id} as they're not in the whitelist.")
+                    await update.message.reply_text("You are not authorized to use this command.")  # Send feedback to the user
+                    return
+                    
+                    
             # Get the handler's signature to determine how to call it
             params = tuple(inspect.signature(handler).parameters.keys())
-            args = self.supported_command_signatures.get(params)
-            
-            if args is not None:
-                return handler(*args)
+            args_func = self.supported_command_signatures.get(params)
+                    
+            if args_func is not None:
+                args = args_func(update, context)
+                return await handler(*args)
             else:
                 logger.error(f"Unsupported handler signature: {params}")
 
