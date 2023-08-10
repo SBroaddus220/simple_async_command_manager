@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "simple-async-command-manager"
-version = "0.1.0"
+version = "0.2.0"
 description = "Simple command manager and asyncio command queue handler with wraps for subprocesses and synchronous commands. Designed to be modular for easy profiling and monitoring."
 authors = ["SBroaddus220 <steven.broaddus220@gmail.com>"]
 license = "GPL-3.0-only"
